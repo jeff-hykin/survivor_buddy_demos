@@ -1,0 +1,4 @@
+- Test each physical bot
+    - find manual offset 
+- mount the phones
+- push bundled code to github pages to put on phones
