@@ -265,7 +265,7 @@ def map_range(value, low1, high1, low2, high2):
     return low2 + (high2 - low2) * (value - low1) / (high1 - low1)
 
 
-def tripleDigitInttoString(num):
+def triple_digit_int_to_string(num):
     if num < 10:
         return "00" + str(num)
     elif num < 100:
