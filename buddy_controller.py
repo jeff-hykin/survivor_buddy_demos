@@ -157,7 +157,10 @@ class SurvivorBuddySerial:
     
     def __del__(self):
         self.still_running = False
-        self.thread.join()
+        try:
+            self.thread.join()
+        except Exception as error:
+            pass
     
     def set_joints(self, torso_pitch, torso_yaw, head_roll, head_pitch, speed=10):
         """
