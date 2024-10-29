@@ -1,0 +1,2 @@
+- arduino nano
+- some of them use the old bootloader (Tools->Processor->AtMega138P (Old Bootloader))
