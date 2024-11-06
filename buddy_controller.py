@@ -1,5 +1,6 @@
 import os
 import time
+import math
 
 # 
 # helpers
@@ -187,7 +188,7 @@ class SurvivorBuddySerial:
         torso_pitch_diff, torso_yaw_diff, head_roll_diff, head_pitch_diff = diffs
         new_torso_pitch, new_torso_yaw, new_head_roll, new_head_pitch = positions
         
-        for _ in range(int(max(abs(each) for each in diffs))):
+        for _ in range(math.ceil(max(abs(each) for each in diffs))):
             # torso_pitch, torso_yaw, head_roll, head_pitch = self.positions = [ base+change for change, base in zip(diffs, self.positions) ]
             new_torso_pitch = _increment_joint_value(torso_pitch_diff, new_torso_pitch, torso_pitch)
             new_torso_yaw   = _increment_joint_value(torso_yaw_diff, new_torso_yaw, torso_yaw)
