@@ -23,7 +23,10 @@ if __name__ == '__main__':
     survivor_bud.safe_set_joints(*[0,0,0,0], speed=4)
     print(f'''Type q [Enter] to quit''')
     while 1:
-        response = input("\nEnter joint positions. Units=degrees. (space or comma separated)\n")
+        try:
+            response = input("\nEnter joint positions. Units=degrees. (space or comma separated)\n")
+        except KeyboardInterrupt:
+            break
         if response.lower() == 'q' or response.lower() == 'quit' or response.lower() == 'exit':
             break
         
@@ -43,8 +46,11 @@ if __name__ == '__main__':
             print(f'''going to {new_joints}''')
             survivor_bud.safe_set_joints(*new_joints, speed=5)
         except Exception as error:
+            if isinstance(error, KeyboardInterrupt):
+                break
             print(error)
             print()
     
     survivor_bud.__del__()
     print("done")
+    exit(0)
