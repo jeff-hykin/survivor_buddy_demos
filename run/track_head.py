@@ -199,12 +199,12 @@ while cap.isOpened():
         torsoRotAngle = int(process_running_average(torsoRotRunning, torsoRotAngle))
 
         # Then construct output string for Arduino
-        survivor_bud.safe_set_joints(
-            torso_pitch=joint_positions.torso_joint-90, # on hardware: larger = more forwards
-            torso_yaw=joint_positions.neck_swivel-90,   # on hardware: smaller = OUR left, survivor buddy's right
-            head_roll=joint_positions.head_tilt-90,     # on hardware: bigger = counterclockwise from OUR persepctive 
-            head_pitch=joint_positions.head_nod-90,   # on hardware: bigger= down
-            speed=speed,
+        survivor_buddy.safe_set_joints(
+            torso_joint=0, # on hardware: larger = more forwards
+            neck_swivel=torsoRotAngle-90,   # on hardware: smaller = OUR left, survivor buddy's right
+            head_tilt=headRotationAngle-90,     # on hardware: bigger = counterclockwise from OUR persepctive 
+            head_nod=headTiltAngle-90,   # on hardware: bigger= down
+            speed=4,
         )
         # survivor_buddy.set_absolute_joints(
         #     torso_pitch=90,  # 90 is neutral
