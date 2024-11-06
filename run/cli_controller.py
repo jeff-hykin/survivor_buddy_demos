@@ -13,12 +13,14 @@ if __name__ == '__main__':
         linux_default_address="/dev/ttyUSB0",
         mac_default_address=None, # mac auto-detects name
         inital_positions=[90,90,90,90],
+        hardware_offset_compensation=[-15, -15, -12, -35],
         logging=False,
         include_legacy_survivor_buddy_support=False,
     )
     # 
     # cli loop 
-    # 
+    #
+    survivor_bud.safe_set_joints(*[0,0,0,0], speed=4)
     print(f'''Type q [Enter] to quit''')
     while 1:
         response = input("\nEnter joint positions. Units=degrees. (space or comma separated)\n")
@@ -37,8 +39,9 @@ if __name__ == '__main__':
             chunks.pop()
         
         try:
-            new_joints = [ int(each)+90 for each in chunks ]
-            survivor_bud.set_joints(*new_joints, speed=10)
+            new_joints = [ int(each) for each in chunks ]
+            print(f'''going to {new_joints}''')
+            survivor_bud.safe_set_joints(*new_joints, speed=5)
         except Exception as error:
             print(error)
             print()

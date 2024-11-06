@@ -294,7 +294,7 @@ class SurvivorBuddySerial:
         self.scheduled_actions += scheduled_actions
     
     # NOTE: values are from -90 to 90 (degrees)
-    def rounded_set_absolute_joints(
+    def safe_set_joints(
         self,
         torso_joint=0, # on hardware: larger = more forwards
         neck_swivel=0, # on hardware: smaller = OUR left, survivor buddy's right
