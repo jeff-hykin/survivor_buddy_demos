@@ -14,7 +14,6 @@ if __name__ == '__main__':
         mac_default_address=None, # mac auto-detects name
         inital_positions=[90,90,90,90],
         hardware_offset_compensation=[-15, -15, -12, -35],
-        logging=False,
         include_legacy_survivor_buddy_support=False,
     )
     # 

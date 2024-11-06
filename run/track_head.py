@@ -18,6 +18,7 @@ survivor_buddy = SurvivorBuddySerial(
     windows_default_address="COM4",
     linux_default_address="/dev/ttyUSB0",
     mac_default_address="/dev/tty.usbserial-2140",
+    _disable_threading=True,
 )
 
 
@@ -199,12 +200,12 @@ while cap.isOpened():
         torsoRotAngle = int(process_running_average(torsoRotRunning, torsoRotAngle))
 
         # Then construct output string for Arduino
-        survivor_buddy.safe_set_joints(
+        print(f"torso_joint: {90}, neck_swivel: {torsoRotAngle}, head_tilt: {headRotationAngle}, head_nod: {headTiltAngle}", flush=True)
+        survivor_buddy._immediate_dangerous_move(
             torso_joint=0, # on hardware: larger = more forwards
-            neck_swivel=torsoRotAngle-90,   # on hardware: smaller = OUR left, survivor buddy's right
+            neck_swivel=torsoRotAngle-113,   # on hardware: smaller = OUR left, survivor buddy's right
             head_tilt=headRotationAngle-90,     # on hardware: bigger = counterclockwise from OUR persepctive 
             head_nod=headTiltAngle-90,   # on hardware: bigger= down
-            speed=4,
         )
         # survivor_buddy.set_absolute_joints(
         #     torso_pitch=90,  # 90 is neutral
