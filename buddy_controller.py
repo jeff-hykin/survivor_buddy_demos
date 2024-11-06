@@ -5,7 +5,7 @@ import math
 # 
 # helpers
 # 
-logging = True
+logging = False
 def clip_value(value, minimum, maximum):
     if value < minimum:
         value = minimum
@@ -100,7 +100,7 @@ class JointPositions(list):
     
     # more negative = face the cieling
     head_nod_max = 40 
-    head_nod_min = -40
+    head_nod_min = -25
     @property
     def head_nod(self): return self[3]
     @head_nod.setter
@@ -134,9 +134,10 @@ class SurvivorBuddySerial:
         )
     """
     torso_pitch_min = 35;torso_pitch_max = 150; # bigger = more forwards
-    torso_yaw_min   = 45;torso_yaw_max   = 135; # smaller = OUR left, survivor buddy's right
-    head_roll_min   = 38;head_roll_max   = 128; # bigger = counterclockwise from OUR persepctive 
-    head_pitch_min  = 30;head_pitch_max  = 110; # bigger= down
+    torso_yaw_min   = 20;torso_yaw_max   = 160; # smaller = OUR left, survivor buddy's right
+    head_roll_min   = 0 ;head_roll_max   = 180; # bigger = counterclockwise from OUR persepctive 
+    head_pitch_min  = 30;head_pitch_max  = 120; # bigger= down
+
     
     # phone pass: 3112
     def __init__(
@@ -188,7 +189,6 @@ class SurvivorBuddySerial:
         
         self.connection_path = connection_path
         self.positions = inital_positions
-        print(f'''self.positions = {self.positions}''')
         initial_delay_time = 0.004 # seconds
         self.scheduled_actions = [
             # move to initial positions
@@ -252,16 +252,24 @@ class SurvivorBuddySerial:
             speed: 1 to 100
         """
         # NOTE: survivor buddy can actually move a bit faster than speed 1, but it very very very much risks damage to the parts from whiplash
+        logging and print(f'''speed check''')
         assert speed <= 100 and speed >= 0.1, "Speed of an action must be in the range 0.1 to 100" 
         # compensation for hardware 0,0,0,0 not being calibrated
         torso_pitch += self.hardware_offset_compensation[0]
         torso_yaw   += self.hardware_offset_compensation[1]
         head_roll   += self.hardware_offset_compensation[2]
         head_pitch  += self.hardware_offset_compensation[3]
-        assert torso_pitch >= SurvivorBuddySerial.torso_pitch_min and torso_pitch <= SurvivorBuddySerial.torso_pitch_max 
-        assert torso_yaw   >= SurvivorBuddySerial.torso_yaw_min   and torso_yaw   <= SurvivorBuddySerial.torso_yaw_max   
-        assert head_roll   >= SurvivorBuddySerial.head_roll_min  and head_roll  <= SurvivorBuddySerial.head_roll_max  
-        assert head_pitch  >= SurvivorBuddySerial.head_pitch_min and head_pitch <= SurvivorBuddySerial.head_pitch_max
+        logging and print("after compensation:")
+        logging and print("    absolute torso_pitch: ",torso_pitch)
+        logging and print("    absolute torso_yaw: ",torso_yaw)
+        logging and print("    absolute head_roll: ",head_roll)
+        logging and print("    absolute head_pitch: ",head_pitch)
+        assert torso_pitch >= SurvivorBuddySerial.torso_pitch_min and torso_pitch <= SurvivorBuddySerial.torso_pitch_max, f"{torso_pitch} torso_pitch >= torso_pitch_min {SurvivorBuddySerial.torso_pitch_min} and torso_pitch <= {SurvivorBuddySerial.torso_pitch_max}" 
+        assert torso_yaw   >= SurvivorBuddySerial.torso_yaw_min   and torso_yaw   <= SurvivorBuddySerial.torso_yaw_max,   f"{torso_yaw} torso_yaw   >= torso_yaw_min {SurvivorBuddySerial.torso_yaw_min}   and torso_yaw   <= {SurvivorBuddySerial.torso_yaw_max}" 
+        assert head_roll   >= SurvivorBuddySerial.head_roll_min   and head_roll   <= SurvivorBuddySerial.head_roll_max,   f"{head_roll} head_roll   >= head_roll_min {SurvivorBuddySerial.head_roll_min}   and head_roll   <= {SurvivorBuddySerial.head_roll_max}" 
+        assert head_pitch  >= SurvivorBuddySerial.head_pitch_min  and head_pitch  <= SurvivorBuddySerial.head_pitch_max,  f"{head_pitch} head_pitch  >= head_pitch_min {SurvivorBuddySerial.head_pitch_min}  and head_pitch  <= {SurvivorBuddySerial.head_pitch_max}" 
+        logging and print(f'''passed check''')
+        
         
         positions = list(self.positions)
         self.scheduled_actions.clear() # interrupt any existing actions
