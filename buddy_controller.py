@@ -5,6 +5,14 @@ import math
 # 
 # helpers
 # 
+logging = True
+def clip_value(value, minimum, maximum):
+    if value < minimum:
+        value = minimum
+    if value > maximum:
+        value = maximum
+    return value
+
 def ask_user_select_item(items):
     for index, item in enumerate(items):
         print(f"{index + 1}. {item}")
@@ -32,6 +40,79 @@ def _increment_joint_value(each_diff, running_value, target_value):
             running_value = target_value
     
     return running_value
+
+class JointPositions(list):
+    """
+        Note:
+            Everything is in degrees
+    """
+    def __init__(self, *args, **kwargs):
+        super().__init__([0,0,0,0])
+        while len(self) < 4:
+            self.append(0)
+            
+        for each_key, each_value in kwargs.items():
+            setattr(self, each_key, each_value)
+        
+        for index, each in enumerate(args):
+            if index == 0:
+                self.torso_joint = each
+            elif index == 1:
+                self.neck_swivel = each
+            elif index == 2:
+                self.head_tilt = each
+            elif index == 3:
+                self.head_nod = each
+    
+    torso_joint_max = 40 
+    torso_joint_min = -40
+    
+    @property
+    def torso_joint(self): return self[0]
+    @torso_joint.setter
+    def torso_joint(self, value):
+        value = clip_value(value, minimum=self.torso_joint_min, maximum=self.torso_joint_max)
+        if logging and value != self[0]:
+            print(f"   torso_joint: {self[0]:.0f}° => {value:.0f}°")
+        self[0] = value
+    
+    neck_swivel_max = 40 
+    neck_swivel_min = -40 
+    @property
+    def neck_swivel(self): return self[1]
+    @neck_swivel.setter
+    def neck_swivel(self, value):
+        value = clip_value(value, minimum=self.neck_swivel_min, maximum=self.neck_swivel_max)
+        if logging and value != self[1]:
+            print(f"   neck_swivel: {self[1]:.0f}° => {value:.0f}°")
+        self[1] = value
+    
+    head_tilt_max = 40 
+    head_tilt_min = -40
+    @property
+    def head_tilt(self): return self[2]
+    @head_tilt.setter
+    def head_tilt(self, value):
+        value = clip_value(value, minimum=self.head_tilt_min, maximum=self.head_tilt_max)
+        if logging and value != self[2]:
+            print(f"   head_tilt: {self[2]:.0f}° => {value:.0f}°")
+        self[2] = value
+    
+    # more negative = face the cieling
+    head_nod_max = 40 
+    head_nod_min = -40
+    @property
+    def head_nod(self): return self[3]
+    @head_nod.setter
+    def head_nod(self, value):
+        value = clip_value(value, minimum=self.head_nod_min, maximum=self.head_nod_max)
+        if logging and value != self[3]:
+            print(f"   head_nod: {self[3]:.0f}° => {value:.0f}°")
+        self[3] = value
+    
+    def __repr__(self):
+        return f"[ torso_joint={self.torso_joint:.0f}°, neck_swivel={self.neck_swivel:.0f}°, head_tilt={self.head_tilt:.0f}°, head_nod={self.head_nod:.0f}°,  ]"
+
 # 
 # 
 # Setup the serial port
@@ -41,7 +122,7 @@ class SurvivorBuddySerial:
     """
     Example:
         survivor_bud = SurvivorBuddySerial()
-        survivor_bud.set_joints(
+        survivor_bud.set_absolute_joints(
             # NOTE: - "pitch" is a motion like nodding your head "yes"
             #       - "yaw" is a motion like nodding your head "no"
             #       - "roll" is motion like tilting your head to one side in confusion/questioning
@@ -49,13 +130,13 @@ class SurvivorBuddySerial:
             torso_yaw=90, smaller = OUR left, survivor buddy's right
             head_roll=90, bigger = counterclockwise from OUR persepctive 
             head_pitch=90, bigger= down
-            speed=40, # out of 100
+            speed=4, # out of 10
         )
     """
     torso_pitch_min = 35;torso_pitch_max = 150; # bigger = more forwards
-    torso_yaw_min   = 20;torso_yaw_max   = 160; # smaller = OUR left, survivor buddy's right
-    head_roll_min  = 0 ;head_roll_max  = 180; # bigger = counterclockwise from OUR persepctive 
-    head_pitch_min = 30;head_pitch_max = 120; # bigger= down
+    torso_yaw_min   = 45;torso_yaw_max   = 135; # smaller = OUR left, survivor buddy's right
+    head_roll_min   = 38;head_roll_max   = 128; # bigger = counterclockwise from OUR persepctive 
+    head_pitch_min  = 30;head_pitch_max  = 110; # bigger= down
     
     # phone pass: 3112
     def __init__(
@@ -107,6 +188,7 @@ class SurvivorBuddySerial:
         
         self.connection_path = connection_path
         self.positions = inital_positions
+        print(f'''self.positions = {self.positions}''')
         initial_delay_time = 0.004 # seconds
         self.scheduled_actions = [
             # move to initial positions
@@ -160,7 +242,8 @@ class SurvivorBuddySerial:
         self.still_running = False
         self.thread.join()
     
-    def set_joints(self, torso_pitch, torso_yaw, head_roll, head_pitch, speed=10):
+    # NOTE: values are from 0 to 180 (degrees)
+    def set_absolute_joints(self, torso_pitch, torso_yaw, head_roll, head_pitch, speed=6):
         """
             torso_pitch: leaning forward/back, bigger = more forwards
             torso_yaw: left and right swivel, smaller = more to OUR left, survivor buddy's right
@@ -209,3 +292,26 @@ class SurvivorBuddySerial:
         
         # add all of them at the end to reduce thread-locking overhead
         self.scheduled_actions += scheduled_actions
+    
+    # NOTE: values are from -90 to 90 (degrees)
+    def rounded_set_absolute_joints(
+        self,
+        torso_joint=0, # on hardware: larger = more forwards
+        neck_swivel=0, # on hardware: smaller = OUR left, survivor buddy's right
+        head_tilt=0, # on hardware: bigger = counterclockwise from OUR persepctive 
+        head_nod=0, # on hardware: bigger= down
+        speed=4, # out of 10
+    ):
+        joint_positions = JointPositions(
+            torso_joint=torso_joint,
+            neck_swivel=neck_swivel,
+            head_tilt=head_tilt,
+            head_nod=head_nod,
+        )
+        return self.set_absolute_joints(
+            torso_pitch=joint_positions.torso_joint+90, # on hardware: larger = more forwards
+            torso_yaw=joint_positions.neck_swivel+90,   # on hardware: smaller = OUR left, survivor buddy's right
+            head_roll=joint_positions.head_tilt+90,     # on hardware: bigger = counterclockwise from OUR persepctive 
+            head_pitch=joint_positions.head_nod+90,     # on hardware: bigger= down
+            speed=speed,
+        )
