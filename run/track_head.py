@@ -35,7 +35,9 @@ from datetime import datetime
 
 # Analog to the arduino map function, maps a value from one range to another
 
-
+neck_swivel_history = []
+head_tilt_history = []
+head_nod_history = []
 def map_range(value, low1, high1, low2, high2):
     return low2 + (high2 - low2) * (value - low1) / (high1 - low1)
 
@@ -51,7 +53,7 @@ def tripleDigitInttoString(num):
 
 def process_running_average(running_vals: list, new_val: int):
     running_vals.append(new_val)
-    if len(running_vals) > 10:
+    if len(running_vals) > 5:
         running_vals.pop(0)
     return sum(running_vals) / len(running_vals)
 
@@ -82,10 +84,9 @@ torsoRotRunning: list[int] = []
 
 survivor_buddy.connection.write(b"1")
 while cap.isOpened():
-    print("Camera was opened.")
     if survivor_buddy.connection.in_waiting > 0:
-        print(survivor_buddy.connection.readline())
-        # pass
+        # print(survivor_buddy.connection.readline())
+        pass
     sucess, image = cap.read()
     if not sucess:
         print("Error: Could not read frame from the camera.")
@@ -97,9 +98,18 @@ while cap.isOpened():
     # Also converting color space from BGR to RGB
     image = cv2.flip(image, 1)
     # image = cv2.cvtColor(cv2.flip(image, 1), cv2.COLOR_BGR2RGB)
-    
-    # To improve performance
-    image.flags.writeable = False
+    image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+    results = face_mesh.process(image)
+    image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
+    if results.multi_face_landmarks:
+        for face_landmarks in results.multi_face_landmarks:
+            mp_drawing.draw_landmarks(
+                image=image,
+                landmark_list=face_landmarks,
+                connections=mp_face_mesh.FACEMESH_CONTOURS,
+                landmark_drawing_spec=drawing_spec,
+                connection_drawing_spec=drawing_spec,
+            )
     
     faces = get_faces(image)
     if len(faces) > 0:
@@ -109,9 +119,9 @@ while cap.isOpened():
                 face = each
                 survivor_buddy._immediate_dangerous_move(
                     torso_joint=0, # on hardware: larger = more forwards
-                    neck_swivel=face.swivel,   # on hardware: smaller = OUR left, survivor buddy's right
-                    head_tilt=face.tilt,     # on hardware: bigger = counterclockwise from OUR persepctive 
-                    head_nod=face.nod,   # on hardware: bigger= down
+                    neck_swivel=process_running_average(neck_swivel_history, face.swivel),   # on hardware: smaller = OUR left, survivor buddy's right
+                    head_tilt=process_running_average(head_tilt_history, -face.tilt),     # on hardware: bigger = counterclockwise from OUR persepctive 
+                    head_nod=process_running_average(head_nod_history, -(face.nod*2)),   # on hardware: bigger= down
                 )
                 # face.nod
                 # face.swivel
