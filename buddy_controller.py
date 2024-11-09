@@ -6,7 +6,7 @@ import time
 # 
 # helpers
 # 
-logging = True
+logging = False
 def clip_value(value, minimum, maximum):
     if value < minimum:
         value = minimum
@@ -245,7 +245,7 @@ class SurvivorBuddySerial:
                     torso_yaw   = clip_value(torso_yaw,   maximum=self.positions[1]+self.movement_limiter, minimum=self.positions[1]-self.movement_limiter)
                     head_roll   = clip_value(head_roll,   maximum=self.positions[2]+self.movement_limiter, minimum=self.positions[2]-self.movement_limiter)
                     head_pitch  = clip_value(head_pitch,  maximum=self.positions[3]+self.movement_limiter, minimum=self.positions[3]-self.movement_limiter)
-                    torso_pitch  = f"{int(90)}".rjust(3, "0") # FIXME: DEBUGGING only
+                    torso_pitch  = f"{int(torso_pitch)}".rjust(3, "0")
                     torso_yaw    = f"{int(torso_yaw)}".rjust(3, "0")
                     head_roll    = f"{int(head_roll)}".rjust(3, "0")
                     head_pitch   = f"{int(head_pitch)}".rjust(3, "0")
