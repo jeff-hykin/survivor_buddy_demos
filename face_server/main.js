@@ -381,12 +381,29 @@ import { fadeAfterNoInteraction } from "./helpers/opacity_helper.js" // this is 
             <RosConnecter></RosConnecter>
         </div>
     `
+    let buttons = html`
+        <div style="position: fixed; top: 0; left: 0; width: 12rem; display: flex; flex-direction: column; margin-top: 1rem; justify-content: center; align-items: start; margin-left: 1rem; z-index: 999;">
+            <button onclick=${()=>face.actions.relax()}>
+                Relax
+            </button>
+            <button onclick=${()=>face.actions.showHappy()} style="margin-top: 1rem">
+                Happy
+            </button>
+            <button onclick=${()=>face.actions.showConfusion()} style="margin-top: 1rem">
+                Confused
+            </button>
+            <button onclick=${()=>face.actions.showScared()} style="margin-top: 1rem">
+                Scared
+            </button>
+        </div>
+    `
     document.body = html`
         <body style="background: #4b5e6b">
             ${face}
             
             <MessageLog></MessageLog>
             ${controls}
+            ${buttons}
         </body>
     `
 
@@ -401,6 +418,7 @@ import { fadeAfterNoInteraction } from "./helpers/opacity_helper.js" // this is 
             // (newOpacity) will get smaller and smaller with each function call
             controls.style.opacity = newOpacity
             MessageLog.element.style.opacity = newOpacity
+            buttons.style.opacity = newOpacity
         },
     })
     document.body.addEventListener("mouseover", function (event) { userInteractedWithPageFunc() })
