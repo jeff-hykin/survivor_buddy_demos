@@ -1,7 +1,6 @@
 import os
 import time
 import math
-import time
 
 # 
 # helpers
@@ -73,8 +72,8 @@ class JointPositions(list):
     @torso_joint.setter
     def torso_joint(self, value):
         value = clip_value(value, minimum=self.torso_joint_min, maximum=self.torso_joint_max)
-        # if logging and value != self[0]:
-        #     print(f"   torso_joint: {self[0]:.0f}° => {value:.0f}°")
+        if logging and value != self[0]:
+            print(f"   torso_joint: {self[0]:.0f}° => {value:.0f}°")
         self[0] = value
     
     neck_swivel_max = 40 
@@ -84,8 +83,8 @@ class JointPositions(list):
     @neck_swivel.setter
     def neck_swivel(self, value):
         value = clip_value(value, minimum=self.neck_swivel_min, maximum=self.neck_swivel_max)
-        # if logging and value != self[1]:
-        #     print(f"   neck_swivel: {self[1]:.0f}° => {value:.0f}°")
+        if logging and value != self[1]:
+            print(f"   neck_swivel: {self[1]:.0f}° => {value:.0f}°")
         self[1] = value
     
     head_tilt_max = 40 
@@ -95,8 +94,8 @@ class JointPositions(list):
     @head_tilt.setter
     def head_tilt(self, value):
         value = clip_value(value, minimum=self.head_tilt_min, maximum=self.head_tilt_max)
-        # if logging and value != self[2]:
-        #     print(f"   head_tilt: {self[2]:.0f}° => {value:.0f}°")
+        if logging and value != self[2]:
+            print(f"   head_tilt: {self[2]:.0f}° => {value:.0f}°")
         self[2] = value
     
     # more negative = face the cieling
@@ -107,8 +106,8 @@ class JointPositions(list):
     @head_nod.setter
     def head_nod(self, value):
         value = clip_value(value, minimum=self.head_nod_min, maximum=self.head_nod_max)
-        # if logging and value != self[3]:
-        #     print(f"   head_nod: {self[3]:.0f}° => {value:.0f}°")
+        if logging and value != self[3]:
+            print(f"   head_nod: {self[3]:.0f}° => {value:.0f}°")
         self[3] = value
     
     def __repr__(self):
@@ -138,12 +137,9 @@ class SurvivorBuddySerial:
     torso_yaw_min   = 20;torso_yaw_max   = 160; # smaller = OUR left, survivor buddy's right
     head_roll_min   = 0 ;head_roll_max   = 180; # bigger = counterclockwise from OUR persepctive 
     head_pitch_min  = 30;head_pitch_max  = 120; # bigger= down
-    
-    movement_limiter = 5 # 5 degrees per movement
 
     
     # phone pass: 3112
-    # phone code: 3112
     def __init__(
         self,
         port_address=None,
@@ -153,14 +149,12 @@ class SurvivorBuddySerial:
         mac_default_address=None, # mac auto-detects name
         inital_positions=[90,90,90,90],
         hardware_offset_compensation=[-15, -15, -12, -35],
-        logging=logging,
+        logging=False,
         include_legacy_survivor_buddy_support=True,
-        _disable_threading=False,
     ):
         import threading
         import serial
         
-        self._disable_threading = _disable_threading
         self.hardware_offset_compensation = hardware_offset_compensation
         for index,offset in enumerate(hardware_offset_compensation):
             inital_positions[index] -= offset
@@ -198,7 +192,7 @@ class SurvivorBuddySerial:
         initial_delay_time = 0.004 # seconds
         self.scheduled_actions = [
             # move to initial positions
-            (inital_positions, initial_delay_time, time.time())
+            (initial_delay_time, inital_positions)
         ]
         
         try:
@@ -211,20 +205,12 @@ class SurvivorBuddySerial:
         
         # thread is only needed for move_joint_slowly (otherwise the sleep() in the thread would slow everything else down)
         self.still_running = True
-        
         def thread_function():
             while self.still_running:
                 while self.connection.in_waiting:
                     response = self.connection.readline()
-                    try:
-                        # example response: Base: 90, Torso: 75, Rot: 78, Tilt: 66
-                        each_joint = response.split(",")
-                        if len(each_joint) == 4:
-                            self.positions = [ int(each.split(": ")[1]) for each in each_joint ]
-                    except Exception as error:
-                        pass
-                    # if logging:
-                    #     print("connection.in_waiting:", response.decode('utf-8').replace("\r\n","\n").replace("\n",""))
+                    if logging:
+                        print(response.decode('utf-8').replace("\r\n","\n"))
                 
                 # This little section is only needed to handle survivor buddy arduino code that
                 # 1. expects a "1" at the start
@@ -234,17 +220,12 @@ class SurvivorBuddySerial:
                     self.connection.write(b"1\n")
                     while self.connection.in_waiting:
                         response = self.connection.readline()
-                        # if logging:
-                        #     if "print" not in response.decode('utf-8') and response != b"1":
-                        #         print(response.decode('utf-8').replace("\r\n","\n").replace("\n",""))
+                        if logging:
+                            print(response.decode('utf-8').replace("\r\n","\n"))
                 
                 if len(self.scheduled_actions) > 1:
-                    positions, wait_time, scheduled_time = self.scheduled_actions.pop(0)
-                    torso_pitch, torso_yaw, head_roll, head_pitch = positions 
-                    torso_pitch = clip_value(torso_pitch, maximum=self.positions[0]+self.movement_limiter, minimum=self.positions[0]-self.movement_limiter)
-                    torso_yaw   = clip_value(torso_yaw,   maximum=self.positions[1]+self.movement_limiter, minimum=self.positions[1]-self.movement_limiter)
-                    head_roll   = clip_value(head_roll,   maximum=self.positions[2]+self.movement_limiter, minimum=self.positions[2]-self.movement_limiter)
-                    head_pitch  = clip_value(head_pitch,  maximum=self.positions[3]+self.movement_limiter, minimum=self.positions[3]-self.movement_limiter)
+                    positions, wait_time = self.scheduled_actions.pop(0)
+                    torso_pitch, torso_yaw, head_roll, head_pitch = positions
                     torso_pitch  = f"{int(torso_pitch)}".rjust(3, "0")
                     torso_yaw    = f"{int(torso_yaw)}".rjust(3, "0")
                     head_roll    = f"{int(head_roll)}".rjust(3, "0")
@@ -252,54 +233,14 @@ class SurvivorBuddySerial:
                     self.connection.write(bytes(f"""{torso_pitch}{torso_yaw}{head_roll}{head_pitch}\n""", "utf-8"))
                     self.positions = positions
                     # without this sleep, even 1000 scheduled actions get executed more or less instantly
-                    delay_amount = scheduled_time-time.time()
-                    logging and print(f"executing action: {positions}, {wait_time}, {scheduled_time}, {scheduled_time-time.time()}", flush=True)
-                    if delay_amount > 0:
-                        time.sleep(delay_amount)
-        if not self._disable_threading:
-            self.thread = threading.Thread(target=thread_function)
-            self.thread.start()
+                    time.sleep(wait_time)
+        
+        self.thread = threading.Thread(target=thread_function)
+        self.thread.start()
     
     def __del__(self):
         self.still_running = False
-        try:
-            self.thread.join()
-        except Exception as error:
-            pass
-    
-    def _immediate_dangerous_move(
-        self, 
-        torso_joint=0,
-        neck_swivel=0,
-        head_tilt=0,
-        head_nod=0,
-    ):
-        """
-            joint_positions: list of floats
-        """
-        joint_positions = JointPositions(
-            torso_joint=torso_joint,
-            neck_swivel=neck_swivel,
-            head_tilt=head_tilt,
-            head_nod=head_nod,
-        )
-        torso_pitch=joint_positions.torso_joint+90  # on hardware: larger = more forwards
-        torso_yaw=joint_positions.neck_swivel+90    # on hardware: smaller = OUR left, survivor buddy's right
-        head_roll=joint_positions.head_tilt+90      # on hardware: bigger = counterclockwise from OUR persepctive 
-        head_pitch=joint_positions.head_nod+90      # on hardware: bigger= down
-        
-        torso_pitch += self.hardware_offset_compensation[0]
-        torso_yaw   += self.hardware_offset_compensation[1]
-        head_roll   += self.hardware_offset_compensation[2]
-        head_pitch  += self.hardware_offset_compensation[3]
-        
-        torso_pitch  = f"{int(torso_pitch)}".rjust(3, "0")
-        torso_yaw    = f"{int(torso_yaw)}".rjust(3, "0")
-        head_roll    = f"{int(head_roll)}".rjust(3, "0")
-        head_pitch   = f"{int(head_pitch)}".rjust(3, "0")
-        self.connection.write(bytes(f"""{torso_pitch}{torso_yaw}{head_roll}{head_pitch}\n""", "utf-8"))
-        self.positions = [torso_pitch, torso_yaw, head_roll, head_pitch]
-        
+        self.thread.join()
     
     # NOTE: values are from 0 to 180 (degrees)
     def set_absolute_joints(self, torso_pitch, torso_yaw, head_roll, head_pitch, speed=6):
@@ -311,23 +252,23 @@ class SurvivorBuddySerial:
             speed: 1 to 100
         """
         # NOTE: survivor buddy can actually move a bit faster than speed 1, but it very very very much risks damage to the parts from whiplash
-        # logging and print(f'''speed check''')
+        logging and print(f'''speed check''')
         assert speed <= 100 and speed >= 0.1, "Speed of an action must be in the range 0.1 to 100" 
         # compensation for hardware 0,0,0,0 not being calibrated
         torso_pitch += self.hardware_offset_compensation[0]
         torso_yaw   += self.hardware_offset_compensation[1]
         head_roll   += self.hardware_offset_compensation[2]
         head_pitch  += self.hardware_offset_compensation[3]
-        # logging and print("after compensation:")
-        # logging and print("    absolute torso_pitch: ",torso_pitch)
-        # logging and print("    absolute torso_yaw: ",torso_yaw)
-        # logging and print("    absolute head_roll: ",head_roll)
-        # logging and print("    absolute head_pitch: ",head_pitch)
+        logging and print("after compensation:")
+        logging and print("    absolute torso_pitch: ",torso_pitch)
+        logging and print("    absolute torso_yaw: ",torso_yaw)
+        logging and print("    absolute head_roll: ",head_roll)
+        logging and print("    absolute head_pitch: ",head_pitch)
         assert torso_pitch >= SurvivorBuddySerial.torso_pitch_min and torso_pitch <= SurvivorBuddySerial.torso_pitch_max, f"{torso_pitch} torso_pitch >= torso_pitch_min {SurvivorBuddySerial.torso_pitch_min} and torso_pitch <= {SurvivorBuddySerial.torso_pitch_max}" 
         assert torso_yaw   >= SurvivorBuddySerial.torso_yaw_min   and torso_yaw   <= SurvivorBuddySerial.torso_yaw_max,   f"{torso_yaw} torso_yaw   >= torso_yaw_min {SurvivorBuddySerial.torso_yaw_min}   and torso_yaw   <= {SurvivorBuddySerial.torso_yaw_max}" 
         assert head_roll   >= SurvivorBuddySerial.head_roll_min   and head_roll   <= SurvivorBuddySerial.head_roll_max,   f"{head_roll} head_roll   >= head_roll_min {SurvivorBuddySerial.head_roll_min}   and head_roll   <= {SurvivorBuddySerial.head_roll_max}" 
         assert head_pitch  >= SurvivorBuddySerial.head_pitch_min  and head_pitch  <= SurvivorBuddySerial.head_pitch_max,  f"{head_pitch} head_pitch  >= head_pitch_min {SurvivorBuddySerial.head_pitch_min}  and head_pitch  <= {SurvivorBuddySerial.head_pitch_max}" 
-        # logging and print(f'''passed check''')
+        logging and print(f'''passed check''')
         
         
         positions = list(self.positions)
@@ -338,22 +279,19 @@ class SurvivorBuddySerial:
         torso_pitch_diff, torso_yaw_diff, head_roll_diff, head_pitch_diff = diffs
         new_torso_pitch, new_torso_yaw, new_head_roll, new_head_pitch = positions
         
-        now = time.time()
-        for index in range(math.ceil(max(abs(each) for each in diffs))):
+        for _ in range(math.ceil(max(abs(each) for each in diffs))):
             # torso_pitch, torso_yaw, head_roll, head_pitch = self.positions = [ base+change for change, base in zip(diffs, self.positions) ]
             new_torso_pitch = _increment_joint_value(torso_pitch_diff, new_torso_pitch, torso_pitch)
             new_torso_yaw   = _increment_joint_value(torso_yaw_diff, new_torso_yaw, torso_yaw)
             new_head_roll   = _increment_joint_value(head_roll_diff, new_head_roll, head_roll)
             new_head_pitch  = _increment_joint_value(head_pitch_diff, new_head_pitch, head_pitch)
             
-            delay = 0.002/(speed/100)
             scheduled_actions.append(
                 (
                     (
                         new_torso_pitch, new_torso_yaw, new_head_roll, new_head_pitch
                     ),
-                    delay,
-                    now + (index+1)*delay,
+                    0.002/(speed/100)
                     # ex: speed=100    => 0.002 wait time
                     # ex: speed= 50    => 0.004 wait time
                     # ex: speed= 0.1   => 2.000 wait time (2 full seconds, times the number of sub-steps; insanely slow)
@@ -378,11 +316,10 @@ class SurvivorBuddySerial:
             head_tilt=head_tilt,
             head_nod=head_nod,
         )
-        self.set_absolute_joints(
+        return self.set_absolute_joints(
             torso_pitch=joint_positions.torso_joint+90, # on hardware: larger = more forwards
             torso_yaw=joint_positions.neck_swivel+90,   # on hardware: smaller = OUR left, survivor buddy's right
             head_roll=joint_positions.head_tilt+90,     # on hardware: bigger = counterclockwise from OUR persepctive 
             head_pitch=joint_positions.head_nod+90,     # on hardware: bigger= down
             speed=speed,
         )
-        time.sleep(0.2)
