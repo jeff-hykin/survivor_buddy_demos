@@ -2,7 +2,7 @@
 import sys
 import os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from buddy_controller import SurvivorBuddySerial
+from advanced_buddy_controller import SurvivorBuddySerial
 import math
 
 import time
